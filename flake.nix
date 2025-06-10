@@ -22,7 +22,30 @@
         };
       in
       {
-        packages.default = pkgs.writeShellApplication {
+
+        packages = rec {
+
+
+
+        model = pkgs.stdenv.mkDerivation {
+          name = "modelfile";
+
+          src = pkgs.fetchgit {
+            url = "https://huggingface.co/Qwen/Qwen3-8B";
+            hash = "sha256-1kwhWHzL2TbSx1rhFExbMhXqn0HMtRhR6LZiuoRx+iI=";
+            fetchLFS = true;
+          };
+
+          buildInputs = [
+            pkgs.llama-cpp
+            pkgs.python3
+          ];
+
+          buildPhase = "convert_hf_to_gguf.py $src --outfile model.gguf";
+          installPhase = "cp model.gguf $out";
+        };
+
+        default = pkgs.writeShellApplication {
 
           name = "offline-llm";
 
@@ -35,7 +58,7 @@
 
             PROMPT="$1"
             # shellcheck disable=SC2016
-            ${pkgs.llama-cpp}/bin/llama-cli -m ${modelFile} \
+            ${pkgs.llama-cpp}/bin/llama-cli -m ${model} \
             -no-cnv \
             --offline \
             --no-warmup \
@@ -43,6 +66,7 @@
             -p "$PROMPT"
 
           '';
+        };
         };
       }
     );
