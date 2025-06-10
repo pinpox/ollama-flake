@@ -38,6 +38,7 @@
             ${pkgs.llama-cpp}/bin/llama-cli -m ${modelFile} \
             -no-cnv \
             --offline \
+            --no-warmup \
             --no-display-prompt \
             -p "$PROMPT"
 
