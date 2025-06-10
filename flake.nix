@@ -25,48 +25,47 @@
 
         packages = rec {
 
+          model = pkgs.stdenv.mkDerivation {
+            name = "modelfile";
 
+            src = pkgs.fetchgit {
+              url = "https://huggingface.co/Qwen/Qwen2.5-Coder-3B";
+              rev = "09d9bc5d376b0cfa0100a0694ea7de7232525803";
+              fetchLFS = true;
+              sha256 = "sha256-VSaxtj1WZB6upGCbqZThamlkYIAjrzkMxnnrXy8JUyg=";
+            };
 
-        model = pkgs.stdenv.mkDerivation {
-          name = "modelfile";
+            buildInputs = [
+              pkgs.llama-cpp
+              pkgs.python3
+            ];
 
-          src = pkgs.fetchgit {
-            url = "https://huggingface.co/Qwen/Qwen3-8B";
-            hash = "sha256-1kwhWHzL2TbSx1rhFExbMhXqn0HMtRhR6LZiuoRx+iI=";
-            fetchLFS = true;
+            buildPhase = "convert_hf_to_gguf.py $src --outfile model.gguf";
+            installPhase = "cp model.gguf $out";
           };
 
-          buildInputs = [
-            pkgs.llama-cpp
-            pkgs.python3
-          ];
+          default = pkgs.writeShellApplication {
 
-          buildPhase = "convert_hf_to_gguf.py $src --outfile model.gguf";
-          installPhase = "cp model.gguf $out";
-        };
+            name = "offline-llm";
 
-        default = pkgs.writeShellApplication {
+            text = ''
 
-          name = "offline-llm";
+              if [ "$#" -eq 0 ]; then
+                echo "Usage: $0 'your prompt'"
+                exit 1
+              fi
 
-          text = ''
+              PROMPT="$1"
+              # shellcheck disable=SC2016
+              ${pkgs.llama-cpp}/bin/llama-cli -m ${model} \
+              -no-cnv \
+              --offline \
+              --no-warmup \
+              --no-display-prompt \
+              -p "$PROMPT"
 
-            if [ "$#" -eq 0 ]; then
-              echo "Usage: $0 'your prompt'"
-              exit 1
-            fi
-
-            PROMPT="$1"
-            # shellcheck disable=SC2016
-            ${pkgs.llama-cpp}/bin/llama-cli -m ${model} \
-            -no-cnv \
-            --offline \
-            --no-warmup \
-            --no-display-prompt \
-            -p "$PROMPT"
-
-          '';
-        };
+            '';
+          };
         };
       }
     );
